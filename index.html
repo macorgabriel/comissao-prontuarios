@@ -342,7 +342,54 @@ function allMultiKeys(){
   return keys;
 }
 
-/* ═══════════════════════════════════════════════ STATE */
+/* ═══════════════════════════════════════════════ CARREGAR DADOS DO GOOGLE SHEETS */
+let sheetsLoadError=null;
+
+function rowToRecord(row){
+  const answers={};
+  ITEMS.forEach(i=>{
+    const v=row['item_'+i.num];
+    if(v!==undefined&&v!=='')answers[i.num]=norm(v);
+  });
+  allMultiKeys().forEach(k=>{
+    const v=row[k];
+    if(v!==undefined&&v!=='')answers[k]=norm(v);
+  });
+  return{
+    id:row.id||Date.now(),
+    date:row.data_auditoria||'',
+    attendance:row.numero_atendimento||'',
+    sector:row.setor_auditado||'',
+    tipoInt:row.tipo_internacao||'',
+    auditor:row.auditor||'',
+    diasIntern:row.dias_internacao||'',
+    desfecho:row.desfecho||'',
+    answers
+  };
+}
+
+async function loadFromSheets(){
+  sheetsLoadError=null;
+  if(!SHEETS_WEBAPP_URL||SHEETS_WEBAPP_URL==='COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT'){
+    sheetsLoadError='SHEETS_WEBAPP_URL não configurada.';
+    data=[];
+    return;
+  }
+  try{
+    const res=await fetch(SHEETS_WEBAPP_URL+'?action=list');
+    const json=await res.json();
+    if(json.status==='ok'&&Array.isArray(json.rows)){
+      data=json.rows.map(rowToRecord);
+    }else{
+      sheetsLoadError=json.message||'Resposta inesperada do Google Sheets.';
+      data=[];
+    }
+  }catch(err){
+    sheetsLoadError='Erro ao buscar dados do Google Sheets: '+err.message;
+    data=[];
+  }
+}
+
 let current={}, data=[], charts=[];
 function $(id){return document.getElementById(id)}
 function load(){try{data=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){data=[]}}
@@ -563,25 +610,33 @@ function mkChart(id,type,labels,datasets,opts={}){
 
 /* ═══════════════════════════════════════════════ DASHBOARD GERAL */
 function dash(){
-  load();destroy();
+  destroy();
   const root=$('dash');
-  if(!data.length){root.innerHTML='<div class="panel empty">📂 Nenhuma auditoria salva. Registre prontuários na aba Coleta.</div>';return;}
-  const secOpts=[...new Set(data.map(r=>r.sector).filter(Boolean))];
-  const monOpts=[...new Set(data.map(r=>r.date.slice(0,7)).filter(Boolean))].sort();
-  const tipoOpts=[...new Set(data.map(r=>r.tipoInt).filter(Boolean))];
-  root.innerHTML=`
-  <div class="panel">
-    <div class="panel-head">
-      <div><h2>Dashboard executivo</h2><p class="sub">Indicadores sobre os 36 itens auditados. Para análise multiprofissional detalhada, use a aba dedicada.</p></div>
-      <div class="filters">
-        <select id="filterSector" onchange="dashApply()"><option value="">Todos os setores</option>${secOpts.map(s=>`<option>${s}</option>`).join('')}</select>
-        <select id="filterMonth" onchange="dashApply()"><option value="">Todos os meses</option>${monOpts.map(m=>`<option>${m}</option>`).join('')}</select>
-        <select id="filterTipo" onchange="dashApply()"><option value="">Todos os tipos</option>${tipoOpts.map(t=>`<option>${t}</option>`).join('')}</select>
+  root.innerHTML='<div class="panel empty">⏳ Carregando dados do Google Sheets...</div>';
+  loadFromSheets().then(()=>{
+    if(sheetsLoadError){
+      root.innerHTML=`<div class="panel empty">⚠️ ${sheetsLoadError}<br><button class="secondary" style="margin-top:10px" onclick="dash()">🔄 Tentar novamente</button></div>`;
+      return;
+    }
+    if(!data.length){root.innerHTML='<div class="panel empty">📂 Nenhuma auditoria registrada no Google Sheets ainda.<br><button class="secondary" style="margin-top:10px" onclick="dash()">🔄 Atualizar</button></div>';return;}
+    const secOpts=[...new Set(data.map(r=>r.sector).filter(Boolean))];
+    const monOpts=[...new Set(data.map(r=>r.date.slice(0,7)).filter(Boolean))].sort();
+    const tipoOpts=[...new Set(data.map(r=>r.tipoInt).filter(Boolean))];
+    root.innerHTML=`
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>Dashboard executivo</h2><p class="sub">Indicadores sobre os 36 itens auditados (dados do Google Sheets, todos os auditores). Para análise multiprofissional detalhada, use a aba dedicada.</p></div>
+        <div class="filters">
+          <select id="filterSector" onchange="dashApply()"><option value="">Todos os setores</option>${secOpts.map(s=>`<option>${s}</option>`).join('')}</select>
+          <select id="filterMonth" onchange="dashApply()"><option value="">Todos os meses</option>${monOpts.map(m=>`<option>${m}</option>`).join('')}</select>
+          <select id="filterTipo" onchange="dashApply()"><option value="">Todos os tipos</option>${tipoOpts.map(t=>`<option>${t}</option>`).join('')}</select>
+          <button class="secondary" onclick="dash()">🔄 Atualizar</button>
+        </div>
       </div>
-    </div>
-    <div id="dashContent"></div>
-  </div>`;
-  dashApply();
+      <div id="dashContent"></div>
+    </div>`;
+    dashApply();
+  });
 }
 
 function dashApply(){
@@ -663,26 +718,34 @@ function dashApply(){
    DASHBOARD MULTIPROFISSIONAL
 ═══════════════════════════════════════════════ */
 function dashMulti(){
-  load();destroy();
+  destroy();
   const root=$('dashMultiRoot');
-  if(!data.length){root.innerHTML='<div class="panel empty">📂 Nenhuma auditoria salva. Registre prontuários na aba Coleta.</div>';return;}
-  const secOpts=[...new Set(data.map(r=>r.sector).filter(Boolean))];
-  const monOpts=[...new Set(data.map(r=>r.date.slice(0,7)).filter(Boolean))].sort();
-  const tipoOpts=[...new Set(data.map(r=>r.tipoInt).filter(Boolean))];
-  root.innerHTML=`
-  <div class="panel">
-    <div class="panel-head">
-      <div><h2>🏥 Adesão da equipe multiprofissional</h2>
-      <p class="sub">Análise da presença de evolução e qualidade do registro por equipe (Fisioterapia, Nutrição, Fonoaudiologia, Farmácia Clínica), com desdobramento por setor e por sub-item condicional.</p></div>
-      <div class="filters">
-        <select id="mFilterSector" onchange="multiApply()"><option value="">Todos os setores</option>${secOpts.map(s=>`<option>${s}</option>`).join('')}</select>
-        <select id="mFilterMonth" onchange="multiApply()"><option value="">Todos os meses</option>${monOpts.map(m=>`<option>${m}</option>`).join('')}</select>
-        <select id="mFilterTipo" onchange="multiApply()"><option value="">Todos os tipos</option>${tipoOpts.map(t=>`<option>${t}</option>`).join('')}</select>
+  root.innerHTML='<div class="panel empty">⏳ Carregando dados do Google Sheets...</div>';
+  loadFromSheets().then(()=>{
+    if(sheetsLoadError){
+      root.innerHTML=`<div class="panel empty">⚠️ ${sheetsLoadError}<br><button class="secondary" style="margin-top:10px" onclick="dashMulti()">🔄 Tentar novamente</button></div>`;
+      return;
+    }
+    if(!data.length){root.innerHTML='<div class="panel empty">📂 Nenhuma auditoria registrada no Google Sheets ainda.<br><button class="secondary" style="margin-top:10px" onclick="dashMulti()">🔄 Atualizar</button></div>';return;}
+    const secOpts=[...new Set(data.map(r=>r.sector).filter(Boolean))];
+    const monOpts=[...new Set(data.map(r=>r.date.slice(0,7)).filter(Boolean))].sort();
+    const tipoOpts=[...new Set(data.map(r=>r.tipoInt).filter(Boolean))];
+    root.innerHTML=`
+    <div class="panel">
+      <div class="panel-head">
+        <div><h2>🏥 Adesão da equipe multiprofissional</h2>
+        <p class="sub">Análise da presença de evolução e qualidade do registro por equipe (Fisioterapia, Nutrição, Fonoaudiologia, Farmácia Clínica), com desdobramento por setor e por sub-item condicional. (Dados do Google Sheets, todos os auditores)</p></div>
+        <div class="filters">
+          <select id="mFilterSector" onchange="multiApply()"><option value="">Todos os setores</option>${secOpts.map(s=>`<option>${s}</option>`).join('')}</select>
+          <select id="mFilterMonth" onchange="multiApply()"><option value="">Todos os meses</option>${monOpts.map(m=>`<option>${m}</option>`).join('')}</select>
+          <select id="mFilterTipo" onchange="multiApply()"><option value="">Todos os tipos</option>${tipoOpts.map(t=>`<option>${t}</option>`).join('')}</select>
+          <button class="secondary" onclick="dashMulti()">🔄 Atualizar</button>
+        </div>
       </div>
-    </div>
-    <div id="multiContent"></div>
-  </div>`;
-  multiApply();
+      <div id="multiContent"></div>
+    </div>`;
+    multiApply();
+  });
 }
 
 function multiApply(){
@@ -839,7 +902,16 @@ function multiApply(){
 
 /* ═══════════════════════════════════════════════ BENCHMARKS */
 function renderBench(){
-  load();
+  $('benchContent').innerHTML='<div class="panel empty">⏳ Carregando dados do Google Sheets...</div>';
+  loadFromSheets().then(()=>{
+    if(sheetsLoadError){
+      $('benchContent').innerHTML=`<div class="panel empty">⚠️ ${sheetsLoadError}<br><button class="secondary" style="margin-top:10px" onclick="renderBench()">🔄 Tentar novamente</button></div>`;
+      return;
+    }
+    renderBenchContent();
+  });
+}
+function renderBenchContent(){
   const arr=data;
   const stats=arr.length?itemStats(arr):null;
   $('benchContent').innerHTML=`
@@ -933,4 +1005,3 @@ load();fillSectors();renderForm();renderMultiForm();updateSyncStatus();
 </script>
 </body>
 </html>
-
