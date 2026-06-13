@@ -1,0 +1,935 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Comissão de Prontuários — v6</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0B1F3A;--navy2:#143B68;--blue:#1F6FEB;--cyan:#16A3B8;--green:#178A4A;
+  --red:#C7362F;--amber:#C78A14;--purple:#6B46C1;--teal:#0D9488;--orange:#EA580C;
+  --fisio:#0891B2;--nutri:#16A34A;--fono:#9333EA;--farma:#B45309;
+  --bg:#EEF2F8;--card:#FFFFFF;--ink:#102033;--muted:#667085;--line:#D0D8E8;--soft:#F4F7FC;
+  --shadow:0 4px 24px rgba(12,32,58,.09);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--ink);font-family:'DM Sans',system-ui,sans-serif;font-size:14px;line-height:1.5}
+.hero{background:linear-gradient(140deg,#071729 0%,#0d2845 40%,#133264 100%);color:white;padding:20px 24px 0;position:sticky;top:0;z-index:100;box-shadow:0 4px 24px rgba(0,0,0,.35)}
+.hero-top{display:flex;gap:14px;align-items:center;max-width:1320px;margin:0 auto}
+.logo{width:44px;height:44px;border-radius:14px;background:linear-gradient(135deg,var(--blue),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.hero-title{flex:1}.hero-title h1{font-size:20px;font-weight:900;letter-spacing:-.03em}
+.hero-title p{font-size:12px;color:#8BAED4;margin-top:2px}
+.version-badge{background:rgba(31,111,235,.3);border:1px solid rgba(31,111,235,.5);color:#7BB3FF;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:700;font-family:'DM Mono',monospace}
+.tabs{display:flex;gap:0;margin-top:16px;max-width:1320px;margin-left:auto;margin-right:auto;overflow-x:auto}
+.tab{border:none;background:transparent;color:rgba(255,255,255,.55);padding:12px 16px 10px;font-weight:700;cursor:pointer;font-size:13px;border-bottom:3px solid transparent;transition:.15s;font-family:'DM Sans',sans-serif;white-space:nowrap}
+.tab.active{color:white;border-bottom-color:var(--blue)}
+.tab:hover:not(.active){color:rgba(255,255,255,.85)}
+main{max-width:1320px;margin:0 auto;padding:22px 18px}
+.page{display:none}.page.active{display:block}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+.panel-head{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+h2{font-size:17px;font-weight:900;letter-spacing:-.02em}
+.sub{margin:4px 0 0;color:var(--muted);font-size:12.5px;line-height:1.45;max-width:840px}
+.chip{display:inline-flex;align-items:center;border-radius:8px;padding:5px 10px;font-size:11px;font-weight:800;white-space:nowrap;font-family:'DM Mono',monospace}
+.chip-blue{background:#EAF2FF;color:var(--blue)}.chip-green{background:#E8F7EF;color:var(--green)}
+.chip-amber{background:#FFF5DF;color:var(--amber)}.chip-red{background:#FDEEEE;color:var(--red)}
+.chip-purple{background:#F3EEFF;color:var(--purple)}.chip-teal{background:#E0F7F5;color:var(--teal)}
+.section-label{display:flex;align-items:center;gap:8px;margin:20px 0 10px;font-size:11px;font-weight:900;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.section-label:before,.section-label:after{content:"";flex:1;height:1px;background:var(--line)}
+.meta{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.meta-3{grid-template-columns:repeat(3,1fr)}
+.field{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.field label{display:block;font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:800;margin-bottom:6px}
+.field input,.field select{width:100%;border:0;outline:0;background:transparent;color:var(--ink);font-size:14px;font-family:'DM Sans',sans-serif}
+.field input::placeholder{color:#bbb}
+/* AUDIT ITEMS */
+.audit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:11px}
+.item{border:1px solid var(--line);border-radius:14px;padding:13px;background:white;transition:.15s}
+.item:hover{box-shadow:0 6px 18px rgba(12,32,58,.07);transform:translateY(-1px)}
+.item.novo{border-color:#D4C5F9;background:#FBFAFF}
+/* EQUIPE BLOCKS — cards visuais destacados */
+.equipe-block{border-radius:16px;padding:16px;margin-bottom:12px;border:2px solid}
+.eb-fisio{border-color:#BAE6FD;background:linear-gradient(135deg,#F0F9FF,#E0F2FE)}
+.eb-nutri{border-color:#BBF7D0;background:linear-gradient(135deg,#F0FDF4,#DCFCE7)}
+.eb-fono{border-color:#E9D5FF;background:linear-gradient(135deg,#FAF5FF,#F3E8FF)}
+.eb-farma{border-color:#FDE68A;background:linear-gradient(135deg,#FFFBEB,#FEF3C7)}
+.equipe-header{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.equipe-icon{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.equipe-title{font-size:14px;font-weight:900;letter-spacing:-.01em}
+.equipe-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.sub-items{margin-top:10px;padding-top:10px;border-top:1px solid rgba(0,0,0,.08);display:none;grid-template-columns:1fr 1fr;gap:8px}
+.sub-items.visible{display:grid}
+.sub-item{background:rgba(255,255,255,.7);border:1px solid rgba(0,0,0,.08);border-radius:10px;padding:10px 12px}
+.sub-item-text{font-size:12.5px;font-weight:500;line-height:1.38;margin-bottom:8px;color:var(--ink)}
+.sub-sub-items{margin-top:8px;padding-top:8px;border-top:1px dashed rgba(0,0,0,.1);display:none}
+.sub-sub-items.visible{display:block}
+.ssub-item{background:rgba(255,255,255,.9);border:1px solid rgba(0,0,0,.06);border-radius:8px;padding:8px 10px;margin-top:6px}
+.ssub-item-text{font-size:12px;font-weight:500;line-height:1.35;margin-bottom:7px;color:var(--ink)}
+.item-header{display:flex;gap:8px;align-items:flex-start;margin-bottom:11px}
+.num{width:22px;height:22px;border-radius:7px;background:var(--blue);color:white;font-weight:900;font-size:11px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:'DM Mono',monospace}
+.num.new{background:var(--purple)}.num.fisio{background:var(--fisio)}.num.nutri{background:var(--nutri)}.num.fono{background:var(--fono)}.num.farma{background:var(--farma)}
+.item-text{font-size:13px;font-weight:500;line-height:1.38}
+.choices{display:flex;gap:7px;flex-wrap:wrap}
+.choice{border:1px solid var(--line);border-radius:999px;background:white;padding:6px 11px;cursor:pointer;font-weight:700;font-size:12px;color:var(--muted);transition:.1s;font-family:'DM Sans',sans-serif}
+.choice:hover{border-color:#aab4c4}
+.choice.sel.sim{background:#E8F7EF;border-color:#8FCB9B;color:var(--green)}
+.choice.sel.nao{background:#FDEEEE;border-color:#E9A0A0;color:var(--red)}
+.choice.sel.na{background:#FFF5DF;border-color:#E8CC80;color:var(--amber)}
+.domain{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;background:#F0F4F9;color:var(--muted);border-radius:5px;padding:2px 6px;margin-bottom:6px}
+.item-bench{font-size:10px;color:var(--muted);margin-top:8px;font-style:italic}
+.item-ref{font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4;padding:6px 8px;background:#F8FAFC;border-radius:7px;border-left:3px solid #D4C5F9}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+button.primary,button.secondary,button.danger,button.export{border:0;border-radius:12px;padding:11px 16px;font-weight:800;cursor:pointer;font-size:13px;font-family:'DM Sans',sans-serif;transition:.15s}
+button.primary{background:linear-gradient(135deg,var(--blue),#1455C0);color:white;box-shadow:0 4px 14px rgba(31,111,235,.3)}
+button.secondary{background:white;color:var(--navy);border:1px solid var(--line)}
+button.secondary:hover{background:var(--soft)}
+button.danger{background:var(--red);color:white}
+button.export{background:var(--teal);color:white}
+/* KPIs */
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+.kpis-4{grid-template-columns:repeat(4,1fr)}
+.kpi{background:white;border:1px solid var(--line);border-radius:16px;padding:14px 16px;position:relative;overflow:hidden}
+.kpi:before{content:"";position:absolute;left:0;top:0;width:4px;height:100%}
+.kpi-blue:before{background:var(--blue)}.kpi-green:before{background:var(--green)}
+.kpi-red:before{background:var(--red)}.kpi-amber:before{background:var(--amber)}
+.kpi-purple:before{background:var(--purple)}.kpi-teal:before{background:var(--teal)}
+.kpi-fisio:before{background:var(--fisio)}.kpi-nutri:before{background:var(--nutri)}
+.kpi-fono:before{background:var(--fono)}.kpi-farma:before{background:var(--farma)}
+.kpi small{display:block;color:var(--muted);text-transform:uppercase;font-size:10px;font-weight:800;letter-spacing:.06em}
+.kpi b{display:block;font-size:26px;font-weight:900;margin-top:7px;letter-spacing:-.03em}
+.kpi span{display:block;color:var(--muted);font-size:11px;margin-top:3px;line-height:1.3}
+.progress-bar{height:6px;background:var(--line);border-radius:3px;margin-top:8px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;transition:.4s}
+/* EQUIPE DASH CARD */
+.eq-card{background:white;border:1px solid var(--line);border-radius:16px;padding:16px;overflow:hidden;position:relative}
+.eq-card:before{content:"";position:absolute;left:0;top:0;width:5px;height:100%}
+.eq-card-fisio:before{background:var(--fisio)}
+.eq-card-nutri:before{background:var(--nutri)}
+.eq-card-fono:before{background:var(--fono)}
+.eq-card-farma:before{background:var(--farma)}
+.eq-card h4{font-size:13px;font-weight:900;margin-bottom:12px;padding-left:4px}
+.eq-stat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px}
+.eq-stat-row:last-child{border-bottom:none}
+.eq-stat-label{color:var(--muted);flex:1;padding-right:8px;line-height:1.3}
+.eq-stat-val{font-weight:800;font-size:13px;min-width:45px;text-align:right}
+/* CHARTS */
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px}
+.charts-grid-3{grid-template-columns:1fr 1fr 1fr}
+.chartbox{background:white;border:1px solid var(--line);border-radius:16px;padding:16px}
+.chartbox h3{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:14px}
+.chart{height:280px}.chart-sm{height:220px}
+.wide{grid-column:1/-1}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:14px;background:white}
+table{width:100%;border-collapse:collapse;font-size:12.5px}
+thead tr{background:var(--navy)}
+th{color:white;text-align:left;padding:10px 11px;white-space:nowrap;font-size:11px;text-transform:uppercase;letter-spacing:.04em;font-weight:700}
+td{border-bottom:1px solid var(--line);padding:9px 11px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#FAFCFF}
+.badge{display:inline-block;border-radius:6px;padding:3px 8px;font-weight:800;font-size:11.5px;font-family:'DM Mono',monospace}
+.ok{background:#E8F7EF;color:var(--green)}.bad{background:#FDEEEE;color:var(--red)}.na{background:#FFF5DF;color:var(--amber)}
+.filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.filters select{border:1px solid var(--line);border-radius:10px;background:white;padding:8px 10px;color:var(--ink);font-size:13px;font-family:'DM Sans',sans-serif;outline:none}
+.bench-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:12px}
+.bench-table th{background:#F3F6FA;color:var(--navy);padding:8px 10px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.05em;border-bottom:2px solid var(--line)}
+.bench-table td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
+.bs-above{background:#E8F7EF;color:var(--green);display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800}
+.bs-below{background:#FDEEEE;color:var(--red);display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800}
+.bs-warn{background:#FFF5DF;color:var(--amber);display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800}
+.bs-neutral{background:#F0F4F9;color:var(--muted);display:inline-flex;align-items:center;gap:4px;border-radius:6px;padding:3px 8px;font-size:11px;font-weight:800}
+.empty{padding:48px;text-align:center;color:var(--muted)}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:#b0bccc;border-radius:3px}
+@media(max-width:1080px){.audit-grid,.kpis,.charts-grid,.meta{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){.audit-grid,.kpis,.charts-grid,.meta,.sub-items{grid-template-columns:1fr}.wide{grid-column:1}}
+</style>
+</head>
+<body>
+<header class="hero">
+<div class="hero-top">
+  <div class="logo">📋</div>
+  <div class="hero-title">
+    <h1>Comissão de Prontuários</h1>
+    <p>Auditoria documental hospitalar · Equipe multiprofissional · Dashboard executivo</p>
+  </div>
+  <span class="version-badge">v6 · 36+9 itens</span>
+</div>
+<div class="tabs">
+  <button class="tab active" onclick="show('coleta')">📝 Coleta</button>
+  <button class="tab" onclick="show('dashboard');dash()">📊 Dashboard Geral</button>
+  <button class="tab" onclick="show('multiprofissional');dashMulti()">🏥 Equipe Multiprofissional</button>
+  <button class="tab" onclick="show('benchmarks');renderBench()">🎯 Benchmarks</button>
+</div>
+</header>
+
+<main>
+<!-- ══════════════════════ COLETA ══════════════════════ -->
+<section id="coleta" class="page active">
+
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2>Identificação da auditoria</h2><p class="sub">Preencha todos os campos antes de registrar os itens.</p></div>
+      <span class="chip chip-blue">Registro obrigatório</span>
+    </div>
+    <div class="meta">
+      <div class="field"><label>Data da auditoria</label><input id="auditDate" type="date"></div>
+      <div class="field"><label>Número de atendimento</label><input id="attendance" type="text" placeholder="Ex.: 2025/123456"></div>
+      <div class="field"><label>Setor auditado</label><select id="sector"><option value="">Selecione</option></select></div>
+      <div class="field"><label>Tipo de internação</label><select id="tipoInt"><option value="">Selecione</option><option>Clínica (eletiva)</option><option>Cirúrgica (eletiva)</option><option>Urgência / Emergência</option><option>Obstétrica</option><option>Pediátrica</option><option>Neonatal</option></select></div>
+    </div>
+    <div class="section-label" style="margin-top:14px">Contexto do prontuário</div>
+    <div class="meta meta-3">
+      <div class="field"><label>Nome do auditor</label><input id="auditor" type="text" placeholder="Nome completo"></div>
+      <div class="field"><label>Dias de internação</label><input id="diasIntern" type="number" min="0" placeholder="Ex.: 5"></div>
+      <div class="field"><label>Desfecho / Alta</label><select id="desfecho"><option value="">Selecione</option><option>Alta hospitalar</option><option>Transferência interna</option><option>Transferência externa</option><option>Óbito</option><option>Em internação (auditoria parcial)</option></select></div>
+    </div>
+  </div>
+
+  <!-- ITENS GERAIS -->
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2>Itens auditados — documentação geral</h2><p class="sub">27 itens originais + 9 novos por benchmark JCI/QMENTUM/ONA/CFM.</p></div>
+      <div style="display:flex;gap:8px"><span class="chip chip-blue">27 originais</span><span class="chip chip-purple">9 benchmark</span></div>
+    </div>
+    <div id="form" class="audit-grid"></div>
+  </div>
+
+  <!-- EQUIPE MULTIPROFISSIONAL -->
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2>Equipe multiprofissional</h2><p class="sub">Campos condicionais: ao responder "sim" à presença de evolução, novos itens são exibidos automaticamente.</p></div>
+      <span class="chip chip-teal">4 equipes · lógica condicional</span>
+    </div>
+    <div id="multi-form"></div>
+  </div>
+
+  <div class="panel" style="padding-bottom:8px">
+    <div id="syncStatus" style="margin-bottom:12px;font-size:12px;color:var(--muted)"></div>
+    <div class="actions">
+      <button class="primary" onclick="save()">💾 Salvar auditoria</button>
+      <button class="secondary" onclick="clearForm()">🗑 Limpar formulário</button>
+      <button class="export" onclick="exportCSV()">⬇ Exportar CSV</button>
+      <button class="danger" onclick="wipe()">⚠ Excluir base local</button>
+    </div>
+  </div>
+
+</section>
+
+<!-- ══════════════════════ DASHBOARD GERAL ══════════════════════ -->
+<section id="dashboard" class="page"><div id="dash"></div></section>
+
+<!-- ══════════════════════ MULTIPROFISSIONAL ══════════════════════ -->
+<section id="multiprofissional" class="page"><div id="dashMultiRoot"></div></section>
+
+<!-- ══════════════════════ BENCHMARKS ══════════════════════ -->
+<section id="benchmarks" class="page"><div id="benchContent"></div></section>
+
+</main>
+
+<script>
+const KEY='hps_comissao_pront_v6';
+
+/* ═══════════════════════════════════════════════
+   CONFIGURAÇÃO — GOOGLE SHEETS (Apps Script Web App)
+   Cole aqui a URL do seu Web App publicado (termina em /exec)
+═══════════════════════════════════════════════ */
+const SHEETS_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbzB_kBwa9PPtyu-SG8xSgqksonc2VP6jjMnzZquqycn5yBMgu12BprlJQ27r2Zu0JLBSQ/exec';
+const SETORES=["Pronto Atendimento Adulto","Pronto Atendimento Infantil","Pronto Atendimento Obstétrico","Pediatria Internação","Cirurgia Pediátrica","Cirurgia Adulto","UTI Cardiológica","UTI Adulto","UTI Neonatal","UTI Pediátrica","Clínica Médica","Clínica Cirúrgica","Maternidade"];
+
+const DOMAIN_MAP={
+  "Identificação":"#1F6FEB","Plano terapêutico":"#0D9488","Comunicação":"#6B46C1",
+  "Medicação":"#C78A14","Consentimento":"#178A4A","Bundles de segurança":"#C7362F",
+  "Segurança do paciente":"#E85D04","Enfermagem / SAE":"#1D4ED8",
+  "Anestesia / Cirurgia":"#0891B2","Alta hospitalar":"#059669","Incorporado (benchmark)":"#7C3AED"
+};
+
+/* ═══════════════════════════════════════════════
+   ITENS GERAIS (1-36)
+═══════════════════════════════════════════════ */
+const ITEMS=[
+  {num:1,domain:"Identificação",novo:false,text:"Tem registro de identificação do paciente (nome e data de nascimento)?",opts:["sim","não"],benchmark:"JCI IPSG.1 — meta: 100%"},
+  {num:2,domain:"Identificação",novo:false,text:"A identificação contém nome completo e data de nascimento?",opts:["sim","não"],benchmark:"JCI IPSG.1 — meta: 100%"},
+  {num:3,domain:"Identificação",novo:false,text:"Todos os impressos estão identificados com os 2 marcadores (nome e data)?",opts:["sim","não"],benchmark:"JCI IPSG.1 — meta: 100%"},
+  {num:4,domain:"Plano terapêutico",novo:false,text:"Há plano terapêutico registrado no prontuário?",opts:["sim","não"],benchmark:"QMENTUM — meta: 95%"},
+  {num:5,domain:"Comunicação",novo:false,text:"Resultado crítico de exame (lab./imagem) está evidenciado em prontuário?",opts:["sim","não","não se aplica"],benchmark:"JCI IPSG.2.1 — meta: 95%"},
+  {num:6,domain:"Comunicação",novo:false,text:"A ferramenta SBAR foi realizada quando indicada?",opts:["sim","não","não se aplica"],benchmark:"JCI IPSG.2 — meta: 90%"},
+  {num:7,domain:"Comunicação",novo:false,text:"O SBAR está preenchido corretamente?",opts:["sim","não","não se aplica"],benchmark:"JCI IPSG.2 — meta: 90%"},
+  {num:8,domain:"Medicação",novo:false,text:"Há evidência de administração e checagem de medicamentos em prontuário?",opts:["sim","não","não se aplica"],benchmark:"JCI MMU.7 — meta: 95%"},
+  {num:9,domain:"Consentimento",novo:false,text:"Paciente cirúrgico possui termo de consentimento cirúrgico?",opts:["sim","não","não se aplica"],benchmark:"JCI PFR.5.2 — meta: 100%"},
+  {num:10,domain:"Consentimento",novo:false,text:"O termo de consentimento tem assinatura do cirurgião?",opts:["sim","não","não se aplica"],benchmark:"JCI PFR.5.2 — meta: 100%"},
+  {num:11,domain:"Consentimento",novo:false,text:"O termo anestésico tem assinatura do anestesista?",opts:["sim","não","não se aplica"],benchmark:"JCI PFR.5.2 — meta: 100%"},
+  {num:12,domain:"Consentimento",novo:false,text:"O termo anestésico descreve a técnica anestésica proposta?",opts:["sim","não","não se aplica"],benchmark:"CFM 1802/2006 — meta: 100%"},
+  {num:13,domain:"Bundles de segurança",novo:false,text:"Bundle de broncoaspiração aplicado e registrado?",opts:["sim","não","não se aplica"],benchmark:"ANVISA/IHI — meta: 90%"},
+  {num:14,domain:"Bundles de segurança",novo:false,text:"Bundle de lesão por pressão aplicado e registrado?",opts:["sim","não","não se aplica"],benchmark:"ANVISA/IHI — meta: 90%"},
+  {num:15,domain:"Bundles de segurança",novo:false,text:"Bundle de infecção de corrente sanguínea (CVC) aplicado e registrado?",opts:["sim","não","não se aplica"],benchmark:"ANVISA/IHI — meta: 90%"},
+  {num:16,domain:"Bundles de segurança",novo:false,text:"Bundle de infecção urinária (SVD) aplicado e registrado?",opts:["sim","não","não se aplica"],benchmark:"ANVISA/IHI — meta: 90%"},
+  {num:17,domain:"Bundles de segurança",novo:false,text:"Bundle de PAV (ventilação mecânica) aplicado e registrado?",opts:["sim","não","não se aplica"],benchmark:"ANVISA/IHI — meta: 90%"},
+  {num:18,domain:"Segurança do paciente",novo:false,text:"Risco de queda avaliado e descrito em prontuário?",opts:["sim","não"],benchmark:"JCI IPSG.6 — meta: 95%"},
+  {num:19,domain:"Segurança do paciente",novo:false,text:"Orientação sobre risco de queda assinada pelo paciente/responsável?",opts:["sim","não"],benchmark:"JCI IPSG.6 — meta: 90%"},
+  {num:20,domain:"Enfermagem / SAE",novo:false,text:"SAE completa (evolução, prescrição e diagnóstico de enfermagem)?",opts:["sim","não"],benchmark:"COFEN 358/2009 — meta: 100%"},
+  {num:21,domain:"Enfermagem / SAE",novo:false,text:"Prevenção de queda descrita adequadamente na SAE?",opts:["sim","não"],benchmark:"COFEN — meta: 95%"},
+  {num:22,domain:"Enfermagem / SAE",novo:false,text:"Medidas de suporte para risco de LPP prescritas na SAE?",opts:["sim","não","não se aplica"],benchmark:"COFEN — meta: 95%"},
+  {num:23,domain:"Enfermagem / SAE",novo:false,text:"Dispositivos em uso descritos no prontuário (drenos, cateteres, sondas, ventilação etc.)?",opts:["sim","não","não se aplica"],benchmark:"QMENTUM — meta: 95%"},
+  {num:24,domain:"Anestesia / Cirurgia",novo:false,text:"Evolução pós-operatória da anestesia registrada?",opts:["sim","não","não se aplica"],benchmark:"CFM 1802/2006 — meta: 100%"},
+  {num:25,domain:"Anestesia / Cirurgia",novo:false,text:"Alta da recuperação pós-anestésica registrada pela anestesia?",opts:["sim","não","não se aplica"],benchmark:"CFM 1802/2006 — meta: 100%"},
+  {num:26,domain:"Alta hospitalar",novo:false,text:"Prontuário contém registro de orientação de alta ao paciente/familiar?",opts:["sim","não"],benchmark:"QMENTUM/ONA — meta: 95%"},
+  {num:27,domain:"Alta hospitalar",novo:false,text:"Prontuário descreve plano de alta e seguimento pós-alta?",opts:["sim","não"],benchmark:"JCI ACC.3 — meta: 90%"},
+  {num:28,domain:"Incorporado (benchmark)",novo:true,text:"Alergias e reações adversas prévias estão registradas?",opts:["sim","não","não se aplica"],benchmark:"JCI IPSG.3 / ISMP — meta: 100%",ref:"Evento sentinela; ausência é causa de incidentes graves de medicação."},
+  {num:29,domain:"Incorporado (benchmark)",novo:true,text:"Hipótese diagnóstica / CID está registrado no prontuário?",opts:["sim","não"],benchmark:"CFM Res. 1638/2002 — meta: 100%",ref:"Obrigatoriedade legal. Item frequente de glosa técnica (ANS)."},
+  {num:30,domain:"Incorporado (benchmark)",novo:true,text:"Há evolução médica diária datada e assinada para cada dia de internação?",opts:["sim","não"],benchmark:"CFM 1638/2002 / QMENTUM — meta: 100%",ref:"Principal falha documental em auditorias nacionais (CFM/CRM)."},
+  {num:31,domain:"Incorporado (benchmark)",novo:true,text:"A prescrição médica é legível (ou eletrônica), datada e assinada?",opts:["sim","não"],benchmark:"CFM 1638/2002 / RDC ANVISA 36/2013 — meta: 100%",ref:"Prescrição ilegível é causa de erro de medicação."},
+  {num:32,domain:"Incorporado (benchmark)",novo:true,text:"Dor avaliada com escala validada (EVA, NRS, FLACC ou equivalente)?",opts:["sim","não","não se aplica"],benchmark:"JCI COP.6 / QMENTUM — meta: 90%",ref:"5º sinal vital. Exigência crescente em acreditação ONA nível 3+."},
+  {num:33,domain:"Incorporado (benchmark)",novo:true,text:"Risco nutricional avaliado e registrado (NRS-2002, MUST ou equivalente)?",opts:["sim","não","não se aplica"],benchmark:"JCI COP.4 / ESPEN — meta: 85%",ref:"Triagem nutricional nas primeiras 48h: meta JCI, associada à redução de mortalidade."},
+  {num:34,domain:"Incorporado (benchmark)",novo:true,text:"Sumário de alta médico no prontuário, assinado pelo médico responsável?",opts:["sim","não","não se aplica"],benchmark:"CFM 1638/2002 / JCI ACC.3.2 — meta: 100%",ref:"Documento legal obrigatório após toda internação. Distinto de orientação de alta."},
+  {num:35,domain:"Incorporado (benchmark)",novo:true,text:"Avaliação de risco de tromboembolismo venoso (TEV) registrada?",opts:["sim","não","não se aplica"],benchmark:"JCI COP.8.3 / Protocolo MS — meta: 90%",ref:"Componente do Programa Nacional de Segurança do Paciente (PNSP)."},
+  {num:36,domain:"Incorporado (benchmark)",novo:true,text:"Potencial de glosa técnica identificado no prontuário?",opts:["sim","não"],benchmark:"ANS RN 395/2016 — monitoramento",ref:"Campo estratégico para gestão de receita hospitalar."},
+];
+
+/* ═══════════════════════════════════════════════
+   EQUIPES MULTIPROFISSIONAIS
+   Estrutura: { id, label, cor, icone, keyPresenca,
+     subItens:[{ key, text, subSubItens:[{key,text}] }] }
+═══════════════════════════════════════════════ */
+const EQUIPES=[
+  {
+    id:'fisio', label:'Fisioterapia', cor:'var(--fisio)', cls:'fisio', icone:'🫁', cssBlock:'eb-fisio',
+    keyPresenca:'fisio_presenca',
+    presencaText:'Há evolução diária da equipe de Fisioterapia registrada no prontuário?',
+    subItens:[
+      { key:'fisio_metas', text:'Há definição clara de metas motoras e/ou de desmame de oxigênio registradas?', subSub:[] }
+    ]
+  },
+  {
+    id:'nutri', label:'Nutrição', cor:'var(--nutri)', cls:'nutri', icone:'🥗', cssBlock:'eb-nutri',
+    keyPresenca:'nutri_presenca',
+    presencaText:'Há evolução da equipe de Nutrição registrada no prontuário?',
+    subItens:[
+      {
+        key:'nutri_aval48h', text:'Há avaliação nutricional dentro das primeiras 48h de internação utilizando escala validada?',
+        subSub:[
+          { key:'nutri_reaval', text:'Há reavaliação nutricional diária simplificada de acompanhamento?' }
+        ]
+      }
+    ]
+  },
+  {
+    id:'fono', label:'Fonoaudiologia', cor:'var(--fono)', cls:'fono', icone:'🗣️', cssBlock:'eb-fono',
+    keyPresenca:'fono_presenca',
+    presencaText:'Há evolução diária da equipe de Fonoaudiologia registrada no prontuário?',
+    subItens:[
+      { key:'fono_deglut', text:'Há avaliação de deglutição registrada no prontuário?', subSub:[] }
+    ]
+  },
+  {
+    id:'farma', label:'Farmácia Clínica', cor:'var(--farma)', cls:'farma', icone:'💊', cssBlock:'eb-farma',
+    keyPresenca:'farma_presenca',
+    presencaText:'Há evolução diária da equipe de Farmácia Clínica registrada no prontuário?',
+    subItens:[
+      { key:'farma_interacao', text:'Há avaliação de interação medicamentosa na prescrição registrada pelo farmacêutico?', subSub:[] },
+      { key:'farma_reconcil', text:'Há avaliação de reconciliação medicamentosa registrada?', subSub:[] }
+    ]
+  }
+];
+
+// Coleta todas as keys multiprofissionais para scoring
+function allMultiKeys(){
+  const keys=[];
+  EQUIPES.forEach(eq=>{
+    keys.push(eq.keyPresenca);
+    eq.subItens.forEach(si=>{keys.push(si.key);si.subSub.forEach(ss=>keys.push(ss.key))});
+  });
+  return keys;
+}
+
+/* ═══════════════════════════════════════════════ STATE */
+let current={}, data=[], charts=[];
+function $(id){return document.getElementById(id)}
+function load(){try{data=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){data=[]}}
+function persist(){localStorage.setItem(KEY,JSON.stringify(data))}
+function show(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  $(id).classList.add('active');
+  const map={coleta:0,dashboard:1,multiprofissional:2,benchmarks:3};
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',i===map[id]));
+}
+function norm(v){return v==='não'?'nao':v==='não se aplica'?'na':v}
+function label(v){return v==='sim'?'sim':v==='nao'?'não':v==='na'?'N/A':'—'}
+function cls(v){return v==='sim'?'sim':v==='nao'?'nao':'na'}
+
+/* ═══════════════════════════════════════════════ FORM */
+function fillSectors(){$('sector').innerHTML='<option value="">Selecione</option>'+SETORES.map(s=>`<option>${s}</option>`).join('')}
+
+function renderChoices(key, opts){
+  return `<div class="choices">${opts.map(o=>{
+    const v=norm(o);
+    return `<button class="choice ${current[key]===v?'sel '+cls(v):''}" onclick="setVal('${key}','${v}')">${o}</button>`;
+  }).join('')}</div>`;
+}
+
+function renderForm(){
+  $('form').innerHTML=ITEMS.map(it=>`
+    <div class="item${it.novo?' novo':''}">
+      <div class="domain" style="color:${DOMAIN_MAP[it.domain]}">${it.domain}</div>
+      <div class="item-header">
+        <div class="num${it.novo?' new':''}">${it.num}</div>
+        <div class="item-text">${it.text}</div>
+      </div>
+      ${it.ref?`<div class="item-ref">${it.ref}</div>`:''}
+      ${renderChoices(it.num, it.opts)}
+      <div class="item-bench">${it.benchmark}</div>
+    </div>`).join('');
+}
+
+function renderMultiForm(){
+  $('multi-form').innerHTML=EQUIPES.map(eq=>{
+    const presVal=current[eq.keyPresenca];
+    const showSub=presVal==='sim';
+    return `
+    <div class="equipe-block ${eq.cssBlock}">
+      <div class="equipe-header">
+        <div class="equipe-icon" style="background:${eq.cor}22">${eq.icone}</div>
+        <div>
+          <div class="equipe-title" style="color:${eq.cor}">${eq.label}</div>
+          <div class="equipe-sub">Registro de atividade multiprofissional</div>
+        </div>
+      </div>
+      <div class="sub-item">
+        <div class="sub-item-text"><strong>${eq.presencaText}</strong></div>
+        ${renderChoices(eq.keyPresenca, ['sim','não','não se aplica'])}
+      </div>
+      <div class="sub-items ${showSub?'visible':''}">
+        ${eq.subItens.map(si=>{
+          const siVal=current[si.key];
+          const showSS=siVal==='sim'&&si.subSub.length>0;
+          return `
+          <div class="sub-item">
+            <div class="sub-item-text">${si.text}</div>
+            ${renderChoices(si.key, ['sim','não','não se aplica'])}
+            ${si.subSub.length>0?`
+            <div class="sub-sub-items ${showSS?'visible':''}">
+              ${si.subSub.map(ss=>`
+              <div class="ssub-item">
+                <div class="ssub-item-text">${ss.text}</div>
+                ${renderChoices(ss.key, ['sim','não','não se aplica'])}
+              </div>`).join('')}
+            </div>`:''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setVal(key,val){current[key]=val;renderForm();renderMultiForm()}
+
+function clearForm(){
+  current={};
+  ['auditDate','attendance','auditor','diasIntern'].forEach(id=>{const el=$(id);if(el)el.value=''});
+  ['sector','tipoInt','desfecho'].forEach(id=>{const el=$(id);if(el)el.value=''});
+  renderForm();renderMultiForm();
+}
+
+function save(){
+  if(!$('auditDate').value||!$('attendance').value.trim()||!$('sector').value){
+    alert('Preencha data, número de atendimento e setor.');return;
+  }
+  const answered=ITEMS.filter(i=>current[i.num]).length;
+  if(!answered){alert('Marque pelo menos um item auditado.');return;}
+  const record={
+    id:Date.now(),date:$('auditDate').value,attendance:$('attendance').value.trim(),
+    sector:$('sector').value,tipoInt:$('tipoInt').value,auditor:$('auditor').value.trim(),
+    diasIntern:$('diasIntern').value,desfecho:$('desfecho').value,
+    answers:{...current}
+  };
+  data.push(record);
+  persist();
+  sendToSheets(record);
+  clearForm();
+  alert('✅ Auditoria salva com sucesso.');
+}
+
+/* ═══════════════════════════════════════════════ ENVIO PARA GOOGLE SHEETS */
+function recordToRow(record){
+  const s=score(record);
+  const multiKeys=allMultiKeys();
+  const row={
+    id:record.id,
+    data_auditoria:record.date,
+    numero_atendimento:record.attendance,
+    setor_auditado:record.sector,
+    tipo_internacao:record.tipoInt||'',
+    auditor:record.auditor||'',
+    dias_internacao:record.diasIntern||'',
+    desfecho:record.desfecho||'',
+    conformidade_geral_pct:s.pct
+  };
+  ITEMS.forEach(i=>{
+    row['item_'+i.num]=label(record.answers[i.num]||'');
+  });
+  multiKeys.forEach(k=>{
+    row[k]=label(record.answers[k]||'');
+  });
+  return row;
+}
+
+function sendToSheets(record){
+  if(!SHEETS_WEBAPP_URL||SHEETS_WEBAPP_URL==='COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT'){
+    console.warn('SHEETS_WEBAPP_URL não configurada. Configure no início do script.');
+    return;
+  }
+  const row=recordToRow(record);
+  fetch(SHEETS_WEBAPP_URL,{
+    method:'POST',
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
+    body:JSON.stringify(row)
+  }).then(res=>res.text()).then(text=>{
+    console.log('Resposta do Google Sheets:',text);
+    try{
+      const parsed=JSON.parse(text);
+      if(parsed.status==='ok'){
+        console.log('✅ Linha gravada com sucesso na planilha.');
+      }else{
+        console.warn('⚠️ Resposta inesperada do Apps Script:',parsed);
+      }
+    }catch(e){
+      console.warn('⚠️ Resposta não é JSON válido (pode indicar erro de permissão/login):',text);
+    }
+  }).catch(err=>{
+    console.error('❌ Erro ao enviar ao Google Sheets:',err);
+  });
+}
+function wipe(){if(confirm('Excluir TODOS os registros?')){data=[];persist();dash();}}
+
+/* ═══════════════════════════════════════════════ SCORING */
+function score(rec){
+  let sim=0,nao=0,na=0,app=0;
+  ITEMS.forEach(i=>{const v=rec.answers[i.num];if(v==='sim'){sim++;app++}else if(v==='nao'){nao++;app++}else if(v==='na')na++});
+  return{sim,nao,na,app,pct:app?Math.round(sim/app*100):0};
+}
+
+// Scoring de um campo multi para um array de registros
+function multiFieldPct(arr, key){
+  let sim=0,nao=0,app=0;
+  arr.forEach(r=>{const v=r.answers[key];if(v==='sim'){sim++;app++}else if(v==='nao'){nao++;app++}});
+  return{sim,nao,app,pct:app?Math.round(sim/app*100):null,n:arr.length};
+}
+
+// Para cada equipe: presença, e cada sub-item condicionado a presença=sim
+function equipeStats(arr, eq){
+  const pres=multiFieldPct(arr, eq.keyPresenca);
+  const presArr=arr.filter(r=>r.answers[eq.keyPresenca]==='sim');
+  const subs=eq.subItens.map(si=>{
+    const s=multiFieldPct(presArr, si.key);
+    const subs2=si.subSub.map(ss=>{
+      const presArr2=presArr.filter(r=>r.answers[si.key]==='sim');
+      return{...multiFieldPct(presArr2, ss.key), text:ss.text, key:ss.key};
+    });
+    return{...s, text:si.text, key:si.key, subSub:subs2};
+  });
+  return{eq, pres, presArr, subs};
+}
+
+function itemStats(arr){
+  return ITEMS.map(i=>{
+    let sim=0,nao=0,na=0;
+    arr.forEach(r=>{const v=r.answers[i.num];if(v==='sim')sim++;else if(v==='nao')nao++;else if(v==='na')na++;});
+    const app=sim+nao;
+    return{...i,sim,nao,na,app,pct:app?Math.round(sim/app*100):0};
+  });
+}
+
+function domainStats(arr){
+  return [...new Set(ITEMS.map(i=>i.domain))].map(d=>{
+    const its=ITEMS.filter(i=>i.domain===d);
+    let sim=0,app=0;
+    arr.forEach(r=>its.forEach(i=>{const v=r.answers[i.num];if(v==='sim'){sim++;app++}else if(v==='nao')app++;}));
+    return{domain:d,pct:app?Math.round(sim/app*100):0,count:its.length,color:DOMAIN_MAP[d]};
+  });
+}
+
+function getFiltered(sid='filterSector', mid='filterMonth', tid='filterTipo'){
+  const s=$(sid)?.value||'',m=$(mid)?.value||'',t=$(tid)?.value||'';
+  return data.filter(r=>(!s||r.sector===s)&&(!m||r.date.slice(0,7)===m)&&(!t||r.tipoInt===t));
+}
+
+/* ═══════════════════════════════════════════════ CHARTS */
+function destroy(){charts.forEach(c=>{try{c.destroy()}catch(e){}});charts=[]}
+function mkChart(id,type,labels,datasets,opts={}){
+  const ctx=$(id);if(!ctx)return;
+  const defaultOpts={responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}};
+  charts.push(new Chart(ctx,{type,data:{labels,datasets},options:{...defaultOpts,...opts}}));
+}
+
+/* ═══════════════════════════════════════════════ DASHBOARD GERAL */
+function dash(){
+  load();destroy();
+  const root=$('dash');
+  if(!data.length){root.innerHTML='<div class="panel empty">📂 Nenhuma auditoria salva. Registre prontuários na aba Coleta.</div>';return;}
+  const secOpts=[...new Set(data.map(r=>r.sector).filter(Boolean))];
+  const monOpts=[...new Set(data.map(r=>r.date.slice(0,7)).filter(Boolean))].sort();
+  const tipoOpts=[...new Set(data.map(r=>r.tipoInt).filter(Boolean))];
+  root.innerHTML=`
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2>Dashboard executivo</h2><p class="sub">Indicadores sobre os 36 itens auditados. Para análise multiprofissional detalhada, use a aba dedicada.</p></div>
+      <div class="filters">
+        <select id="filterSector" onchange="dashApply()"><option value="">Todos os setores</option>${secOpts.map(s=>`<option>${s}</option>`).join('')}</select>
+        <select id="filterMonth" onchange="dashApply()"><option value="">Todos os meses</option>${monOpts.map(m=>`<option>${m}</option>`).join('')}</select>
+        <select id="filterTipo" onchange="dashApply()"><option value="">Todos os tipos</option>${tipoOpts.map(t=>`<option>${t}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div id="dashContent"></div>
+  </div>`;
+  dashApply();
+}
+
+function dashApply(){
+  destroy();
+  const arr=getFiltered();
+  const c=$('dashContent');
+  if(!arr.length){c.innerHTML='<div class="empty">Nenhum registro para os filtros selecionados.</div>';return;}
+  const scores=arr.map(score);
+  const total=arr.length;
+  const tSim=scores.reduce((a,b)=>a+b.sim,0),tNao=scores.reduce((a,b)=>a+b.nao,0),tNa=scores.reduce((a,b)=>a+b.na,0);
+  const avg=Math.round(scores.reduce((a,b)=>a+b.pct,0)/total);
+  const critN=scores.filter(s=>s.nao>0).length;
+  const excelentes=scores.filter(s=>s.pct>=90).length;
+  const avgColor=avg>=90?'var(--green)':avg>=75?'var(--amber)':'var(--red)';
+  const stats=itemStats(arr);
+  const worst=stats.filter(x=>x.app>0).sort((a,b)=>a.pct-b.pct||b.nao-a.nao);
+  const domStats=domainStats(arr);
+  const bySector=Object.entries(arr.reduce((m,r)=>{(m[r.sector]??=[]).push(r);return m},{}))
+    .map(([k,v])=>({k,n:v.length,score:Math.round(v.map(score).reduce((a,b)=>a+b.pct,0)/v.length)}))
+    .sort((a,b)=>a.score-b.score);
+  const byMonth=Object.entries(arr.reduce((m,r)=>{const mo=r.date.slice(0,7);(m[mo]??=[]).push(r);return m},{}))
+    .sort(([a],[b])=>a.localeCompare(b))
+    .map(([mo,v])=>({mo,pct:Math.round(v.map(score).reduce((a,b)=>a+b.pct,0)/v.length)}));
+
+  c.innerHTML=`
+  <div class="kpis">
+    <div class="kpi kpi-blue"><small>Prontuários auditados</small><b>${total}</b><span>registros filtrados</span></div>
+    <div class="kpi kpi-green"><small>Conformidade média</small><b style="color:${avgColor}">${avg}%</b><div class="progress-bar"><div class="progress-fill" style="width:${avg}%;background:${avgColor}"></div></div></div>
+    <div class="kpi kpi-red"><small>Com ≥1 não conformidade</small><b>${Math.round(critN/total*100)}%</b><span>${critN} prontuários</span></div>
+    <div class="kpi kpi-amber"><small>Não conformidades total</small><b>${tNao}</b><span>respostas "não"</span></div>
+    <div class="kpi kpi-purple"><small>Excelentes ≥90%</small><b>${excelentes}</b><span>${Math.round(excelentes/total*100)}% do total</span></div>
+    <div class="kpi kpi-teal"><small>Não se aplica</small><b>${tNa}</b><span>respostas N/A</span></div>
+  </div>
+  <div class="charts-grid">
+    <div class="chartbox"><h3>Conformidade por setor</h3><div class="chart"><canvas id="cSector"></canvas></div></div>
+    <div class="chartbox"><h3>Conformidade por domínio</h3><div class="chart"><canvas id="cDomain"></canvas></div></div>
+  </div>
+  <div class="charts-grid">
+    <div class="chartbox"><h3>Tendência mensal (%)</h3><div class="chart"><canvas id="cTrend"></canvas></div></div>
+    <div class="chartbox"><h3>Distribuição geral das respostas</h3><div class="chart"><canvas id="cDist"></canvas></div></div>
+  </div>
+  <div class="chartbox wide" style="margin-bottom:16px"><h3>10 itens com pior aderência</h3><div class="chart" style="height:320px"><canvas id="cWorst"></canvas></div></div>
+  <div class="panel" style="margin-top:0"><h2 style="margin-bottom:14px">Análise por item auditado</h2>
+  <div class="tablewrap"><table><thead><tr><th>#</th><th>Domínio</th><th>Item</th><th>Sim</th><th>Não</th><th>N/A</th><th>Aderência</th><th>Benchmark</th></tr></thead><tbody>
+  ${stats.map(s=>`<tr>
+    <td><b style="font-family:'DM Mono',monospace">${s.num}</b>${s.novo?'<span class="badge" style="background:#EDE8FF;color:#7C3AED;margin-left:4px;font-size:10px">novo</span>':''}</td>
+    <td style="color:${DOMAIN_MAP[s.domain]||'var(--muted)'};font-weight:700;font-size:11px">${s.domain}</td>
+    <td style="max-width:300px">${s.text}</td>
+    <td><span class="badge ok">${s.sim}</span></td><td><span class="badge bad">${s.nao}</span></td><td><span class="badge na">${s.na}</span></td>
+    <td><b>${s.app?s.pct+'%':'—'}</b></td><td style="color:var(--muted);font-size:11px">${s.benchmark}</td>
+  </tr>`).join('')}
+  </tbody></table></div></div>
+  <div class="panel" style="margin-top:0">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+      <h2>Base de prontuários auditados</h2><button class="export" onclick="exportCSV()">⬇ Exportar CSV</button>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Data</th><th>Atendimento</th><th>Setor</th><th>Tipo</th><th>Auditor</th><th>Dias</th><th>Desfecho</th><th>Conf.</th></tr></thead><tbody>
+    ${arr.map(r=>{const s=score(r);return`<tr>
+      <td style="white-space:nowrap">${r.date}</td><td><b style="font-family:'DM Mono',monospace">${r.attendance}</b></td>
+      <td>${r.sector}</td><td style="font-size:11px;color:var(--muted)">${r.tipoInt||'—'}</td>
+      <td style="font-size:11px">${r.auditor||'—'}</td><td style="text-align:center">${r.diasIntern||'—'}</td>
+      <td style="font-size:11px">${r.desfecho||'—'}</td>
+      <td><b style="color:${s.pct>=90?'var(--green)':s.pct>=75?'var(--amber)':'var(--red)'}">${s.pct}%</b></td>
+    </tr>`}).join('')}
+    </tbody></table></div>
+  </div>`;
+
+  const sC=bySector.map(x=>x.score>=90?'rgba(23,138,74,.8)':x.score>=75?'rgba(199,138,20,.8)':'rgba(199,54,47,.8)');
+  mkChart('cSector','bar',bySector.map(x=>x.k),[{data:bySector.map(x=>x.score),backgroundColor:sC,borderRadius:6}],{scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}});
+  mkChart('cDomain','bar',domStats.map(d=>d.domain),[{data:domStats.map(d=>d.pct),backgroundColor:domStats.map(d=>d.color+'CC'),borderRadius:6}],{indexAxis:'y',scales:{x:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}});
+  if(byMonth.length>1){
+    mkChart('cTrend','line',byMonth.map(x=>x.mo),[{data:byMonth.map(x=>x.pct),borderColor:'#0D9488',backgroundColor:'rgba(13,148,136,.12)',fill:true,tension:.35,pointRadius:5,pointBackgroundColor:'#0D9488'}],{scales:{y:{min:50,max:100,ticks:{callback:v=>v+'%'}}}});
+  } else {$('cTrend').parentElement.innerHTML='<h3>Tendência mensal</h3><div class="empty" style="padding:30px;font-size:13px">Mínimo 2 meses de dados</div>';}
+  mkChart('cDist','doughnut',['Sim','Não','N/A'],[{data:[tSim,tNao,tNa],backgroundColor:['rgba(23,138,74,.8)','rgba(199,54,47,.8)','rgba(199,138,20,.8)'],borderWidth:2,borderColor:'white'}],{plugins:{legend:{display:true,position:'bottom'}}});
+  mkChart('cWorst','bar',worst.slice(0,10).map(x=>`${x.num}. ${x.text.substring(0,48)}…`),[{data:worst.slice(0,10).map(x=>x.pct),backgroundColor:worst.slice(0,10).map(x=>x.pct>=90?'rgba(23,138,74,.75)':x.pct>=75?'rgba(199,138,20,.75)':'rgba(199,54,47,.75)'),borderRadius:6}],{indexAxis:'y',scales:{x:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}}});
+}
+
+/* ═══════════════════════════════════════════════
+   DASHBOARD MULTIPROFISSIONAL
+═══════════════════════════════════════════════ */
+function dashMulti(){
+  load();destroy();
+  const root=$('dashMultiRoot');
+  if(!data.length){root.innerHTML='<div class="panel empty">📂 Nenhuma auditoria salva. Registre prontuários na aba Coleta.</div>';return;}
+  const secOpts=[...new Set(data.map(r=>r.sector).filter(Boolean))];
+  const monOpts=[...new Set(data.map(r=>r.date.slice(0,7)).filter(Boolean))].sort();
+  const tipoOpts=[...new Set(data.map(r=>r.tipoInt).filter(Boolean))];
+  root.innerHTML=`
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2>🏥 Adesão da equipe multiprofissional</h2>
+      <p class="sub">Análise da presença de evolução e qualidade do registro por equipe (Fisioterapia, Nutrição, Fonoaudiologia, Farmácia Clínica), com desdobramento por setor e por sub-item condicional.</p></div>
+      <div class="filters">
+        <select id="mFilterSector" onchange="multiApply()"><option value="">Todos os setores</option>${secOpts.map(s=>`<option>${s}</option>`).join('')}</select>
+        <select id="mFilterMonth" onchange="multiApply()"><option value="">Todos os meses</option>${monOpts.map(m=>`<option>${m}</option>`).join('')}</select>
+        <select id="mFilterTipo" onchange="multiApply()"><option value="">Todos os tipos</option>${tipoOpts.map(t=>`<option>${t}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div id="multiContent"></div>
+  </div>`;
+  multiApply();
+}
+
+function multiApply(){
+  destroy();
+  const arr=getFiltered('mFilterSector','mFilterMonth','mFilterTipo');
+  const c=$('multiContent');
+  if(!arr.length){c.innerHTML='<div class="empty">Nenhum registro para os filtros.</div>';return;}
+  const total=arr.length;
+
+  // ── KPIs por equipe ──
+  const equipeData=EQUIPES.map(eq=>({eq, stats:equipeStats(arr,eq)}));
+  const kpiHtml=`
+  <div class="kpis" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+    ${equipeData.map(({eq,stats})=>{
+      const pct=stats.pres.pct;
+      const colorVar=`var(--${eq.cls})`;
+      return `<div class="kpi kpi-${eq.cls}">
+        <small>${eq.icone} ${eq.label}</small>
+        <b style="color:${pct!==null?(pct>=80?'var(--green)':pct>=60?'var(--amber)':'var(--red)'):'var(--muted)'}">${pct!==null?pct+'%':'—'}</b>
+        <span>Presença de evolução<br>${stats.pres.sim} sim · ${stats.pres.nao} não · ${total-stats.pres.app} N/A</span>
+      </div>`;
+    }).join('')}
+  </div>`;
+
+  // ── Gráfico radar: presença por equipe (barras comparativas) ──
+  const eqLabels=EQUIPES.map(e=>e.label);
+  const eqPcts=equipeData.map(({stats})=>stats.pres.pct??0);
+  const eqColors=EQUIPES.map(e=>`var(--${e.cls})`);
+
+  // ── Cards detalhados por equipe ──
+  const detailCards=equipeData.map(({eq,stats})=>{
+    const presColor=stats.pres.pct!==null?(stats.pres.pct>=80?'var(--green)':stats.pres.pct>=60?'var(--amber)':'var(--red)'):'var(--muted)';
+    const subsRows=stats.subs.map(si=>{
+      const siColor=si.pct!==null?(si.pct>=80?'var(--green)':si.pct>=60?'var(--amber)':'var(--red)'):'var(--muted)';
+      const ssRows=si.subSub.map(ss=>{
+        const ssColor=ss.pct!==null?(ss.pct>=80?'var(--green)':ss.pct>=60?'var(--amber)':'var(--red)'):'var(--muted)';
+        return `<div class="eq-stat-row" style="padding-left:16px;background:#F8FAFC">
+          <span class="eq-stat-label" style="font-size:11.5px">↳ ${ss.text}</span>
+          <span class="eq-stat-val" style="color:${ssColor}">${ss.pct!==null?ss.pct+'%':'—'}</span>
+        </div>`;
+      }).join('');
+      return `<div class="eq-stat-row">
+        <span class="eq-stat-label">${si.text}<br><span style="font-size:10.5px;color:var(--muted)">Condicionado a: evolução presente (n=${stats.presArr.length})</span></span>
+        <span class="eq-stat-val" style="color:${siColor}">${si.pct!==null?si.pct+'%':'—'}</span>
+      </div>${ssRows}`;
+    }).join('');
+    return `
+    <div class="eq-card eq-card-${eq.cls}">
+      <h4 style="color:var(--${eq.cls})">${eq.icone} ${eq.label}</h4>
+      <div class="eq-stat-row">
+        <span class="eq-stat-label"><strong>Presença de evolução registrada</strong></span>
+        <span class="eq-stat-val" style="color:${presColor}">${stats.pres.pct!==null?stats.pres.pct+'%':'—'}</span>
+      </div>
+      ${subsRows}
+    </div>`;
+  }).join('');
+
+  // ── Por setor: tabela detalhada ──
+  const setores=[...new Set(arr.map(r=>r.sector).filter(Boolean))].sort();
+  const setorRows=setores.map(sec=>{
+    const sarr=arr.filter(r=>r.sector===sec);
+    const cells=EQUIPES.map(eq=>{
+      const pres=multiFieldPct(sarr, eq.keyPresenca);
+      const color=pres.pct!==null?(pres.pct>=80?'var(--green)':pres.pct>=60?'var(--amber)':'var(--red)'):'var(--muted)';
+      return `<td style="text-align:center"><b style="color:${color}">${pres.pct!==null?pres.pct+'%':'—'}</b><br><span style="font-size:10px;color:var(--muted)">${sarr.length} pront.</span></td>`;
+    }).join('');
+    return `<tr><td><b>${sec}</b></td>${cells}</tr>`;
+  }).join('');
+
+  // ── Por setor: sub-itens detalhados ──
+  const subDetailTables=EQUIPES.map(eq=>{
+    const allSubKeys=[eq.keyPresenca,...eq.subItens.map(s=>s.key),...eq.subItens.flatMap(s=>s.subSub.map(ss=>ss.key))];
+    const allSubTexts=["Presença de evolução",...eq.subItens.map(s=>s.text.substring(0,60)+'…'),...eq.subItens.flatMap(s=>s.subSub.map(ss=>ss.text.substring(0,60)+'…'))];
+    const rows=setores.map(sec=>{
+      const sarr=arr.filter(r=>r.sector===sec);
+      const cells=allSubKeys.map(k=>{
+        const p=multiFieldPct(sarr,k);
+        const color=p.pct!==null?(p.pct>=80?'var(--green)':p.pct>=60?'var(--amber)':'var(--red)'):'var(--muted)';
+        return `<td style="text-align:center"><b style="color:${color};font-size:13px">${p.pct!==null?p.pct+'%':'—'}</b></td>`;
+      }).join('');
+      return `<tr><td><b>${sec}</b></td>${rows}</tr>`;
+    }).join('');
+    return `
+    <div style="margin-top:20px">
+      <h3 style="font-size:13px;font-weight:900;color:var(--${eq.cls});margin-bottom:10px;display:flex;align-items:center;gap:6px">${eq.icone} ${eq.label} — detalhe por setor</h3>
+      <div class="tablewrap">
+        <table><thead><tr><th>Setor</th>${allSubTexts.map(t=>`<th style="max-width:160px;white-space:normal;line-height:1.3">${t}</th>`).join('')}</tr></thead>
+        <tbody>${rows}</tbody></table>
+      </div>
+    </div>`;
+  }).join('');
+
+  // ── Gráfico: presença por equipe × setor ──
+  const chartEquipeSetor=EQUIPES.map((eq,i)=>({
+    label:eq.label,
+    data:setores.map(sec=>{
+      const sarr=arr.filter(r=>r.sector===sec);
+      return multiFieldPct(sarr,eq.keyPresenca).pct??0;
+    }),
+    backgroundColor:`var(--${eq.cls})88`,
+    borderColor:`var(--${eq.cls})`,
+    borderWidth:2,borderRadius:4
+  }));
+
+  c.innerHTML=`
+  ${kpiHtml}
+
+  <!-- Comparativo visual geral + sub-itens -->
+  <div class="charts-grid" style="margin-bottom:16px">
+    <div class="chartbox">
+      <h3>Presença de evolução — comparativo entre equipes (%)</h3>
+      <div class="chart"><canvas id="cEqGeral"></canvas></div>
+    </div>
+    <div class="chartbox">
+      <h3>Presença de evolução por equipe × setor (%)</h3>
+      <div class="chart"><canvas id="cEqSetor"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Cards detalhados por equipe -->
+  <h3 style="font-size:14px;font-weight:900;margin-bottom:12px">Detalhamento por equipe — itens condicionais</h3>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+    ${detailCards}
+  </div>
+
+  <!-- Tabela por setor resumida -->
+  <h3 style="font-size:14px;font-weight:900;margin-bottom:10px">Presença de evolução por setor × equipe</h3>
+  <div class="tablewrap" style="margin-bottom:20px">
+    <table><thead><tr><th>Setor</th>${EQUIPES.map(eq=>`<th>${eq.icone} ${eq.label}</th>`).join('')}</tr></thead>
+    <tbody>${setorRows}</tbody></table>
+  </div>
+
+  <!-- Tabelas detalhadas por equipe × setor -->
+  <h3 style="font-size:14px;font-weight:900;margin-bottom:4px">Detalhe por sub-item condicional — por equipe e setor</h3>
+  <p style="font-size:12px;color:var(--muted);margin-bottom:14px">Sub-itens só aparecem condicionados à presença de evolução registrada. "—" indica sem dados suficientes.</p>
+  ${subDetailTables}
+  `;
+
+  // render charts
+  mkChart('cEqGeral','bar',eqLabels,[{
+    data:eqPcts,
+    backgroundColor:EQUIPES.map(e=>`var(--${e.cls})AA`),
+    borderColor:EQUIPES.map(e=>`var(--${e.cls})`),
+    borderWidth:2,borderRadius:8
+  }],{scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}},plugins:{legend:{display:false}}});
+
+  if(setores.length>0){
+    mkChart('cEqSetor','bar',setores,chartEquipeSetor,{
+      scales:{y:{beginAtZero:true,max:100,ticks:{callback:v=>v+'%'}}},
+      plugins:{legend:{display:true,position:'bottom',labels:{boxWidth:12,font:{size:11}}}}
+    });
+  }
+}
+
+/* ═══════════════════════════════════════════════ BENCHMARKS */
+function renderBench(){
+  load();
+  const arr=data;
+  const stats=arr.length?itemStats(arr):null;
+  $('benchContent').innerHTML=`
+  <div class="panel">
+    <div class="panel-head">
+      <div><h2>Painel de benchmarks nacionais e internacionais</h2>
+      <p class="sub">Referências: JCI, QMENTUM (Accreditation Canada), ONA, CFM Res. 1638/2002, COFEN, ANVISA/IHI, ANS, ESPEN, ISMP. Conformidade calculada sobre os dados da instituição quando disponíveis.</p></div>
+      <span class="chip chip-purple">Evidência A–B</span>
+    </div>
+    <table class="bench-table">
+      <thead><tr><th>#</th><th>Item</th><th>Domínio</th><th>Referência</th><th>Meta</th><th>Instituição</th><th>Status</th></tr></thead>
+      <tbody>
+        ${ITEMS.map(it=>{
+          const s=stats?stats.find(x=>x.num===it.num):null;
+          const inst=s&&s.app>0?s.pct:null;
+          const m=it.benchmark.match(/meta:\s*(\d+)/);
+          const meta=m?parseInt(m[1]):null;
+          let stO={cls:'bs-neutral',label:'Sem dados'};
+          if(inst!==null&&meta!==null) stO=inst>=meta?{cls:'bs-above',label:`✓ ${inst}%`}:inst>=meta-10?{cls:'bs-warn',label:`⚠ ${inst}%`}:{cls:'bs-below',label:`✗ ${inst}%`};
+          else if(inst!==null) stO={cls:'bs-neutral',label:`${inst}%`};
+          return `<tr>
+            <td><b style="font-family:'DM Mono',monospace">${it.num}</b>${it.novo?'<span class="badge" style="background:#EDE8FF;color:#7C3AED;margin-left:4px;font-size:10px">novo</span>':''}</td>
+            <td style="max-width:280px;font-size:12.5px">${it.text}</td>
+            <td style="font-size:11px;font-weight:700;color:${DOMAIN_MAP[it.domain]||'var(--muted)'}">${it.domain}</td>
+            <td style="font-size:11px;color:var(--muted)">${it.benchmark}</td>
+            <td><b>${meta?meta+'%':'—'}</b></td>
+            <td><b>${inst!==null?inst+'%':'—'}</b></td>
+            <td><span class="${stO.cls}">${stO.label}</span></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <div class="panel-head"><div><h2>Justificativa dos 9 itens incorporados por benchmark</h2></div><span class="chip chip-purple">9 novos itens</span></div>
+    <table class="bench-table">
+      <thead><tr><th>#</th><th>Item</th><th>Justificativa</th><th>Referência</th></tr></thead>
+      <tbody>${ITEMS.filter(i=>i.novo).map(it=>`<tr>
+        <td><b style="font-family:'DM Mono',monospace">${it.num}</b></td>
+        <td style="max-width:220px;font-size:12.5px;font-weight:600">${it.text}</td>
+        <td style="font-size:12px;max-width:360px;line-height:1.5">${it.ref||'—'}</td>
+        <td style="font-size:11px;color:var(--muted)">${it.benchmark}</td>
+      </tr>`).join('')}</tbody>
+    </table>
+  </div>`;
+}
+
+/* ═══════════════════════════════════════════════ EXPORT */
+function exportCSV(){
+  load();
+  const multiKeys=allMultiKeys();
+  const multiLabels={
+    fisio_presenca:'Fisio — Presença evolução',
+    fisio_metas:'Fisio — Metas motoras/desmame O2',
+    nutri_presenca:'Nutri — Presença evolução',
+    nutri_aval48h:'Nutri — Avaliação nutricional 48h',
+    nutri_reaval:'Nutri — Reavaliação nutricional diária',
+    fono_presenca:'Fono — Presença evolução',
+    fono_deglut:'Fono — Avaliação de deglutição',
+    farma_presenca:'Farma — Presença evolução',
+    farma_interacao:'Farma — Interação medicamentosa',
+    farma_reconcil:'Farma — Reconciliação medicamentosa'
+  };
+  const headers=['data_auditoria','numero_atendimento','setor_auditado','tipo_internacao','auditor','dias_internacao','desfecho','conformidade_geral_pct',
+    ...ITEMS.map(i=>i.num+'. '+i.text.substring(0,55)),
+    ...multiKeys.map(k=>multiLabels[k]||k)
+  ];
+  const rows=data.map(r=>{
+    const s=score(r);
+    return[r.date,r.attendance,r.sector,r.tipoInt||'',r.auditor||'',r.diasIntern||'',r.desfecho||'',s.pct+'%',
+      ...ITEMS.map(i=>label(r.answers[i.num]||'')),
+      ...multiKeys.map(k=>label(r.answers[k]||''))
+    ];
+  });
+  const csv=[headers,...rows].map(row=>row.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(';')).join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='auditoria_prontuarios_v6.csv';a.click();URL.revokeObjectURL(a.href);
+}
+
+/* ═══════════════════════════════════════════════ INIT */
+function updateSyncStatus(){
+  const el=$('syncStatus');
+  if(!el)return;
+  if(!SHEETS_WEBAPP_URL||SHEETS_WEBAPP_URL==='COLE_AQUI_A_URL_DO_SEU_APPS_SCRIPT'){
+    el.innerHTML='⚠️ <b style="color:var(--amber)">Envio ao Google Sheets não configurado.</b> Os dados serão salvos apenas neste dispositivo (local).';
+  }else{
+    el.innerHTML='✅ <b style="color:var(--green)">Conectado ao Google Sheets.</b> Cada auditoria salva é enviada automaticamente ao banco de dados compartilhado.';
+  }
+}
+load();fillSectors();renderForm();renderMultiForm();updateSyncStatus();
+</script>
+</body>
+</html>
